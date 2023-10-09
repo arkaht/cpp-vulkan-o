@@ -24,7 +24,8 @@ void release( GLFWwindow* window, VulkanRenderer& renderer )
 	glfwTerminate();
 }
 
-int main() {
+int main() 
+{
 	GLFWwindow* window = init_window( "Vulkan-o", 1280, 720 );
 
 	VulkanRenderer renderer( window );
@@ -33,6 +34,7 @@ int main() {
 	while ( !glfwWindowShouldClose( window ) ) 
 	{
 		glfwPollEvents();
+		renderer.draw();
 	}
 
 	release( window, renderer );

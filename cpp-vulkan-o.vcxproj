@@ -132,11 +132,16 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vulkan-renderer.cpp" />
-    <ClCompile Include="vulkan-utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="math-utils.hpp" />
     <ClInclude Include="vulkan-renderer.h" />
     <ClInclude Include="vulkan-utils.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\compile.bat" />
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
