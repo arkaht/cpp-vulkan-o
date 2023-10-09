@@ -132,9 +132,11 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vulkan-renderer.cpp" />
+    <ClCompile Include="vulkan-utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vulkan-renderer.h" />
+    <ClInclude Include="vulkan-utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

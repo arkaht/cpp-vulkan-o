@@ -21,9 +21,15 @@
     <ClCompile Include="vulkan-renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan-utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vulkan-renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan-utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
