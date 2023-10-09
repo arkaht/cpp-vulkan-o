@@ -9,9 +9,10 @@ VulkanRenderer::~VulkanRenderer()
 
 int VulkanRenderer::init()
 {
-	try 
+	try
 	{
 		create_instance();
+		retrieve_physical_device();
 	}
 	catch ( const std::runtime_error& err )
 	{
@@ -83,4 +84,29 @@ bool VulkanRenderer::check_instance_extensions_support( const std::vector<const 
 	}
 
 	return true;
+}
+
+void VulkanRenderer::retrieve_physical_device()
+{
+	std::vector<vk::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
+	if ( devices.size() == 0 ) throw std::runtime_error( "Can't find any GPU that supports Vulkan" );
+
+	for ( const auto& device : devices )
+	{
+		if ( check_device_suitable( device ) )
+		{
+			main_device.physical_device = device;
+			break;
+		}
+	}
+}
+
+bool VulkanRenderer::check_device_suitable( vk::PhysicalDevice device )
+{
+	return false;
+}
+
+VulkanQueueFamilyIndices VulkanRenderer::get_queue_families( vk::PhysicalDevice device )
+{
+	return VulkanQueueFamilyIndices();
 }
