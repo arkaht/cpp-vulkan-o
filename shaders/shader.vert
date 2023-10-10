@@ -1,25 +1,13 @@
 #version 450
 
-//  output colors for vertex shader
-layout( location = 0 ) out vec3 fragColor;
+// From vertex input stage
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 col;
 
-// Triangle vertex positions
-// (will be put to vertex buffer later)
-vec3 positions[3] = vec3[](
-	vec3( 0.0, -0.4, 0.0 ),
-	vec3( 0.4, 0.4, 0.0 ),
-	vec3( -0.4, 0.4, 0.0 )
-);
+// To fragment shader
+layout(location = 0) out vec3 fragColor;
 
-// Colors
-vec3 colors[3] = vec3[](
-	vec3( 1.0, 0.0, 0.0 ),
-	vec3( 0.0, 1.0, 0.0 ),
-	vec3( 0.0, 0.0, 1.0 )
-);
-
-void main() 
-{
-	gl_Position = vec4(positions[gl_VertexIndex], 1.0);
-	fragColor = colors[gl_VertexIndex];
+void main() {
+    gl_Position = vec4(pos, 1.0);
+    fragColor = col;
 }

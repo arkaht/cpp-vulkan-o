@@ -131,10 +131,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="vulkan-mesh.cpp" />
     <ClCompile Include="vulkan-renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="math-utils.hpp" />
+    <ClInclude Include="vulkan-mesh.h" />
     <ClInclude Include="vulkan-renderer.h" />
     <ClInclude Include="vulkan-utils.hpp" />
   </ItemGroup>

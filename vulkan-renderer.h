@@ -3,8 +3,9 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-#include "vulkan-utils.hpp"
 #include "math-utils.hpp"
+#include "vulkan-utils.hpp"
+#include "vulkan-mesh.h"
 
 class VulkanRenderer
 {
@@ -16,6 +17,8 @@ public:
 	void release();
 
 	void draw();
+
+	VulkanMesh* create_mesh( std::vector<VulkanVertex>* vertices, std::vector<uint32_t>* indices );
 
 private:
 	GLFWwindow* Window;
@@ -39,6 +42,8 @@ private:
 
 	vk::Queue GraphicsQueue;
 	vk::Queue PresentationQueue;
+
+	std::vector<VulkanMesh> meshes;
 
 	const int MAX_FRAME_DRAWS = 2;  //  should be less than SwapchainImages count
 	int CurrentFrame = 0;

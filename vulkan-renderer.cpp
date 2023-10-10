@@ -13,15 +13,43 @@ int VulkanRenderer::init()
 {
 	try
 	{
+		//  device
 		create_instance();
 		Surface = create_surface();
 		retrieve_physical_device();
 		create_logical_device();
+
+		//  pipeline
 		create_swapchain();
 		create_render_pass();
 		create_graphics_pipeline();
 		create_frame_buffers();
 		create_graphics_command_pool();
+
+		//  objects
+		std::vector<VulkanVertex> mesh_vertices1
+		{
+			{{-0.1f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
+			{{-0.1f,  0.4f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
+			{{-0.9f,  0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
+			{{-0.9f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
+		};
+		std::vector<VulkanVertex> mesh_vertices2
+		{
+			{{ 0.9f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
+			{{ 0.9f,  0.4f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
+			{{ 0.1f,  0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
+			{{ 0.1f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
+		};
+		std::vector<uint32_t> mesh_indices
+		{
+			0, 1, 2,
+			2, 3, 0
+		};
+		create_mesh( &mesh_vertices1, &mesh_indices );
+		create_mesh( &mesh_vertices2, &mesh_indices );
+
+		//  commands
 		create_graphics_command_buffers();
 		record_commands();
 		create_synchronisation();
@@ -38,6 +66,13 @@ int VulkanRenderer::init()
 void VulkanRenderer::release()
 {
 	MainDevices.Logical.waitIdle();
+
+	//  release meshes
+	for ( auto& mesh : meshes )
+	{
+		mesh.release_buffers();
+	}
+	meshes.clear();
 
 	//  release swapchain image views
 	for ( auto& image : SwapchainImages )
@@ -121,6 +156,21 @@ void VulkanRenderer::draw()
 
 	//  increase frame
 	CurrentFrame = ( CurrentFrame + 1 ) % MAX_FRAME_DRAWS;
+}
+
+VulkanMesh* VulkanRenderer::create_mesh( std::vector<VulkanVertex>* vertices, std::vector<uint32_t>* indices )
+{
+	VulkanMesh mesh(
+		MainDevices.Physical,
+		MainDevices.Logical,
+		GraphicsQueue,
+		GraphicsCommandPool,
+		vertices,
+		indices
+	);
+
+	meshes.push_back( mesh );
+	return &meshes.back();
 }
 
 void VulkanRenderer::create_instance()
@@ -352,15 +402,46 @@ void VulkanRenderer::create_graphics_pipeline()
 	};
 
 	//  create pipeline
+	// Vertex description
+	// -- Binding, data layout
+	vk::VertexInputBindingDescription binding_description {};
+	// Binding position. Can bind multiple streams of data.
+	binding_description.binding = 0;
+	// Size of a single vertex data object, like in OpenGL
+	binding_description.stride = sizeof( VulkanVertex );
+	// How ot move between data after each vertex.
+	// vk::VertexInputRate::eVertex: move onto next vertex
+	// vk::VertexInputRate::eInstance: move to a vertex for the next instance.
+	// Draw each first vertex of each instance, then the next vertex etc.
+	binding_description.inputRate = vk::VertexInputRate::eVertex;
+
+	// Different attributes
+	std::array<vk::VertexInputAttributeDescription, 2> attribute_descriptions;
+
+	// Position attributes
+	// -- Binding of first attribute. Relate to binding description.
+	attribute_descriptions[0].binding = 0;
+	// Location in shader
+	attribute_descriptions[0].location = 0;
+	// Format and size of the data(here: vec3)
+	attribute_descriptions[0].format = vk::Format::eR32G32B32Sfloat;
+	// Offset of data in vertex, like in OpenGL. The offset function automatically find it.
+	attribute_descriptions[0].offset = offsetof( VulkanVertex, Position );
+
+	// Color attributes
+	attribute_descriptions[1].binding = 0;
+	attribute_descriptions[1].location = 1;
+	attribute_descriptions[1].format = vk::Format::eR32G32B32Sfloat;
+	attribute_descriptions[1].offset = offsetof( VulkanVertex, Color );
+
 	// -- VERTEX INPUT STAGE --
-	// TODO: Put in vertex description when resources created
-	vk::PipelineVertexInputStateCreateInfo vertex_input_create_info{};
-	vertex_input_create_info.vertexBindingDescriptionCount = 0;
+	vk::PipelineVertexInputStateCreateInfo vertex_input_create_info {};
+	vertex_input_create_info.vertexBindingDescriptionCount = 1;
 	// List of vertex binding desc. (data spacing, stride...)
-	vertex_input_create_info.pVertexBindingDescriptions = nullptr;
-	vertex_input_create_info.vertexAttributeDescriptionCount = 0;
+	vertex_input_create_info.vertexAttributeDescriptionCount = (uint32_t)attribute_descriptions.size();
+	vertex_input_create_info.pVertexBindingDescriptions = &binding_description;
 	// List of vertex attribute desc. (data format and where to bind to/from)
-	vertex_input_create_info.pVertexAttributeDescriptions = nullptr;
+	vertex_input_create_info.pVertexAttributeDescriptions = attribute_descriptions.data();
 
 	// -- INPUT ASSEMBLY --
 	vk::PipelineInputAssemblyStateCreateInfo input_assembly_create_info {};
@@ -380,7 +461,7 @@ void VulkanRenderer::create_graphics_pipeline()
 	viewport.maxDepth = 1.0f; // Max framebuffer depth
 
 	// Create a scissor info struct, everything outside is cut
-	vk::Rect2D scissor{};
+	vk::Rect2D scissor {};
 	scissor.offset = vk::Offset2D { 0, 0 };
 	scissor.extent = SwapchainExtent;
 
@@ -445,7 +526,7 @@ void VulkanRenderer::create_graphics_pipeline()
 	// Alternative to usual blending calculation
 	color_blending_create_info.logicOpEnable = VK_FALSE;
 	// Enable blending and choose colors to apply blending to
-	vk::PipelineColorBlendAttachmentState color_blend_attachment{};
+	vk::PipelineColorBlendAttachmentState color_blend_attachment {};
 	color_blend_attachment.colorWriteMask = vk::ColorComponentFlagBits::eR |
 		vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
 		vk::ColorComponentFlagBits::eA;
@@ -713,10 +794,24 @@ void VulkanRenderer::record_commands()
 		// you could switch pipelines for different subpasses
 		buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, GraphicsPipeline );
 
-		// Execute pipeline
+		//  draw meshes
+		for ( const auto& mesh : meshes )
+		{
+			//  bind vertex buffer
+			vk::Buffer vertex_buffers[] = { mesh.get_vertex_buffer() };
+			vk::DeviceSize offsets[] = { 0 };
+			buffer.bindVertexBuffers( 0, vertex_buffers, offsets );
+
+			//  bind index buffer
+			buffer.bindIndexBuffer( mesh.get_index_buffer(), 0, vk::IndexType::eUint32 );
+			
+			// Execute pipeline
+			buffer.drawIndexed( (uint32_t)mesh.get_index_count(), 1, 0, 0, 0 );
+		}
+
 		// Draw 3 vertices, 1 instance, with no offset. Instance allow you
 		// to draw several instances with one draw call.
-		buffer.draw( 3, 1, 0, 0 );
+		//buffer.draw( 3, 1, 0, 0 );
 
 		// End render pass
 		buffer.endRenderPass();
