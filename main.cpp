@@ -49,13 +49,6 @@ int main()
 		if ( angle > 360.0f ) angle -= 360.0f;
 
 		//  update model
-		renderer.update_model( 
-			glm::rotate( 
-				glm::mat4( 1.0f ), 
-				glm::radians( angle ), 
-				glm::vec3( 0.0f, 0.0f, 1.0f ) 
-			) 
-		);
 
 		//  draw
 		renderer.draw();

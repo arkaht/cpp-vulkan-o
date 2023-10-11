@@ -11,6 +11,8 @@ VulkanMesh::VulkanMesh(
 	: PhysicalDevice( physical_device ), Device( device ),
 	  VertexCount( vertices->size() ), IndexCount( indices->size() )
 {
+	MeshData.Model = glm::mat4( 1.0f );
+
 	setup_vertex_buffer( transfer_queue, transfer_command_pool, vertices );
 	setup_index_buffer( transfer_queue, transfer_command_pool, indices );
 }

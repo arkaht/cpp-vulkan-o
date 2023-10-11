@@ -5,6 +5,11 @@
 
 #include "vulkan-utils.hpp"
 
+struct MeshData
+{
+	glm::mat4 Model;
+};
+
 class VulkanMesh
 {
 public:
@@ -25,6 +30,9 @@ public:
 	size_t get_index_count() const { return IndexCount; }
 	vk::Buffer get_index_buffer() const { return IndexBuffer; }
 
+	MeshData get_mesh_data() const { return MeshData; }
+	void set_model_matrix( const glm::mat4& matrix ) { MeshData.Model = matrix; }
+
 	void release_buffers();
 
 private:
@@ -38,6 +46,8 @@ private:
 	size_t IndexCount;
 	vk::Buffer IndexBuffer;
 	vk::DeviceMemory IndexBufferMemory;
+
+	MeshData MeshData;
 
 	void setup_vertex_buffer( vk::Queue transfer_queue, vk::CommandPool transfer_command_pool, std::vector<VulkanVertex>* vertices );
 	void setup_index_buffer( vk::Queue transfer_queue, vk::CommandPool transfer_command_pool, std::vector<uint32_t>* indices );
