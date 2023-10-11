@@ -2,10 +2,19 @@
 
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "math-utils.hpp"
 #include "vulkan-utils.hpp"
 #include "vulkan-mesh.h"
+
+struct MVP
+{
+	glm::mat4 Model;
+	glm::mat4 View;
+	glm::mat4 Projection;
+};
 
 class VulkanRenderer
 {
@@ -15,6 +24,8 @@ public:
 
 	int init();
 	void release();
+
+	void update_model( glm::mat4 model );
 
 	void draw();
 
@@ -43,7 +54,14 @@ private:
 	vk::Queue GraphicsQueue;
 	vk::Queue PresentationQueue;
 
-	std::vector<VulkanMesh> meshes;
+	MVP Matrices;
+	std::vector<VulkanMesh> Meshes;
+	vk::DescriptorPool DescriptorPool;
+	vk::DescriptorSetLayout DescriptorSetLayout;
+	std::vector<vk::DescriptorSet> DescriptorSets;
+
+	std::vector<vk::Buffer> UniformBuffers;
+	std::vector<vk::DeviceMemory> UniformBuffersMemory;
 
 	const int MAX_FRAME_DRAWS = 2;  //  should be less than SwapchainImages count
 	int CurrentFrame = 0;
@@ -65,6 +83,10 @@ private:
 	void create_graphics_command_pool();
 	void create_graphics_command_buffers();
 	void create_synchronisation();
+	void create_descriptor_pool();
+	void create_descriptor_set_layout();
+	void create_descriptor_sets();
+	void create_uniform_buffers();
 	vk::ShaderModule create_shader_module( const std::vector<char>& code );
 	
 	void record_commands();
@@ -76,6 +98,8 @@ private:
 	bool check_device_suitable( const vk::PhysicalDevice& device );
 	bool check_device_extension_support( const vk::PhysicalDevice& device );
 	
+	void update_uniform_buffer( uint32_t image_idx );
+
 	VulkanSwapchainDetails get_swapchain_details( const vk::PhysicalDevice& device );
 	vk::SurfaceFormatKHR get_best_surface_format( const std::vector<vk::SurfaceFormatKHR>& formats );
 	vk::PresentModeKHR get_best_presentation_mode( const std::vector<vk::PresentModeKHR>& modes );

@@ -31,9 +31,33 @@ int main()
 	VulkanRenderer renderer( window );
 	if ( renderer.init() == EXIT_FAILURE ) return EXIT_FAILURE;
 
+	float angle = 0.0f;
+	float dt = 0.0f;
+	float last_time = 0.0f;
+
 	while ( !glfwWindowShouldClose( window ) ) 
 	{
 		glfwPollEvents();
+
+		//  compute delta time
+		float current_time = glfwGetTime();
+		dt = current_time - last_time;
+		last_time = current_time;
+
+		//  rotate model
+		angle += 50.0 * dt;
+		if ( angle > 360.0f ) angle -= 360.0f;
+
+		//  update model
+		renderer.update_model( 
+			glm::rotate( 
+				glm::mat4( 1.0f ), 
+				glm::radians( angle ), 
+				glm::vec3( 0.0f, 0.0f, 1.0f ) 
+			) 
+		);
+
+		//  draw
 		renderer.draw();
 	}
 
