@@ -4,10 +4,15 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "stb_image.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include "math-utils.hpp"
 #include "vulkan-utils.hpp"
 #include "vulkan-mesh.h"
+#include "vulkan-mesh-model.h"
 
 struct ViewProjection
 {
@@ -26,7 +31,12 @@ public:
 
 	void draw();
 
-	VulkanMesh* create_mesh( std::vector<VulkanVertex>* vertices, std::vector<uint32_t>* indices );
+	VulkanMesh* create_mesh( 
+		std::vector<VulkanVertex>* vertices, 
+		std::vector<uint32_t>* indices,
+		int texture_id
+	);
+	VulkanMeshModel* create_mesh_model( const std::string& file );
 	void update_model( int id, glm::mat4 matrix );
 
 private:
@@ -54,7 +64,8 @@ private:
 
 	ViewProjection Matrices;
 	std::vector<VulkanMesh> Meshes;
-	vk::DescriptorPool DescriptorPool;
+	std::vector<VulkanMeshModel> MeshModels;
+	vk::DescriptorPool ViewProjDescriptorPool;
 	vk::DescriptorSetLayout DescriptorSetLayout;
 	std::vector<vk::DescriptorSet> DescriptorSets;
 
@@ -72,7 +83,18 @@ private:
 	vk::DeviceMemory DepthBufferImageMemory;
 	vk::Format DepthBufferFormat;
 
-	const int MAX_OBJECTS = 2;
+	//  textures
+	std::vector<vk::Image> TextureImages;
+	std::vector<vk::ImageView> TextureImageViews;
+	std::vector<vk::DeviceMemory> TextureImageMemories;
+
+	//  sampler
+	vk::Sampler TextureSampler;
+	vk::DescriptorPool SamplerDescriptorPool;
+	vk::DescriptorSetLayout SamplerDescriptorSetLayout;
+	std::vector<vk::DescriptorSet> SamplerDescriptorSets;
+
+	const int MAX_OBJECTS = 20;
 	vk::DeviceSize MinUniformBufferOffset;
 	size_t ModelUniformAlignement;
 	MeshData* ModelTransferSpace;
@@ -104,6 +126,7 @@ private:
 	void create_push_constant_range();
 	void create_depth_buffer_image();
 	vk::ShaderModule create_shader_module( const std::vector<char>& code );
+
 	vk::Image create_image( 
 		uint32_t width,
 		uint32_t height,
@@ -113,7 +136,11 @@ private:
 		vk::MemoryPropertyFlags prop_flags,
 		vk::DeviceMemory* image_memory
 	);
-	
+	int create_texture_image( const std::string& file );
+	int create_texture( const std::string& file );
+	void create_texture_sampler();
+	int create_texture_descriptor( vk::ImageView image_view );
+
 	void record_commands( uint32_t image_idx );
 
 	bool check_instance_extensions_support( const std::vector<const char*>& extensions );
@@ -126,6 +153,8 @@ private:
 	void update_uniform_buffers( uint32_t image_idx );
 
 	void allocate_dynamic_buffer_transfer_space();
+
+	stbi_uc* load_texture_file( const std::string& path, int* width, int* height, vk::DeviceSize* image_size );
 
 	VulkanSwapchainDetails get_swapchain_details( const vk::PhysicalDevice& device );
 	vk::SurfaceFormatKHR get_best_surface_format( const std::vector<vk::SurfaceFormatKHR>& formats );

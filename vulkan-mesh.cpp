@@ -6,10 +6,12 @@ VulkanMesh::VulkanMesh(
 	vk::Queue transfer_queue,
 	vk::CommandPool transfer_command_pool,
 	std::vector<VulkanVertex>* vertices,
-	std::vector<uint32_t>* indices
+	std::vector<uint32_t>* indices,
+	int texture_id
 )
 	: PhysicalDevice( physical_device ), Device( device ),
-	  VertexCount( vertices->size() ), IndexCount( indices->size() )
+	  VertexCount( vertices->size() ), IndexCount( indices->size() ),
+	  TextureID( texture_id )
 {
 	MeshData.Model = glm::mat4( 1.0f );
 

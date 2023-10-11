@@ -19,7 +19,8 @@ public:
 		vk::Queue transfer_queue, 
 		vk::CommandPool transfer_command_pool, 
 		std::vector<VulkanVertex>* vertices,
-		std::vector<uint32_t>* indices
+		std::vector<uint32_t>* indices,
+		int texture_id
 	);
 	VulkanMesh() = default;
 	~VulkanMesh() = default;
@@ -35,6 +36,8 @@ public:
 
 	void release_buffers();
 
+	int get_texture_id() const { return TextureID; }
+
 private:
 	vk::PhysicalDevice PhysicalDevice;
 	vk::Device Device;
@@ -48,6 +51,7 @@ private:
 	vk::DeviceMemory IndexBufferMemory;
 
 	MeshData MeshData;
+	int TextureID;
 
 	void setup_vertex_buffer( vk::Queue transfer_queue, vk::CommandPool transfer_command_pool, std::vector<VulkanVertex>* vertices );
 	void setup_index_buffer( vk::Queue transfer_queue, vk::CommandPool transfer_command_pool, std::vector<uint32_t>* indices );
