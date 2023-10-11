@@ -23,6 +23,7 @@ int VulkanRenderer::init()
 		create_swapchain();
 		create_render_pass();
 		create_descriptor_set_layout();
+		create_push_constant_range();
 		create_graphics_pipeline();
 		create_frame_buffers();
 		create_graphics_command_pool();
@@ -35,27 +36,26 @@ int VulkanRenderer::init()
 			0.1f, 
 			100.0f 
 		);
+		Matrices.Projection[1][1] *= -1.0f;  //  in Vulkan, Y is downward meanwhile in glm, it's upward
 		Matrices.View = glm::lookAt( 
-			glm::vec3( 3.0f, 1.0f, 2.0f ), 
-			glm::vec3( 0.0f, 0.0f, 0.0f ), 
+			glm::vec3( 5.0f, 1.0f, 2.0f ), 
+			glm::vec3( 0.0f, 0.0f, -5.0f ), 
 			glm::vec3( 0.0f, 1.0f, 0.0f ) 
 		);
 
-		Matrices.Projection[1][1] *= -1.0f;  //  in Vulkan, Y is downward meanwhile in glm, it's upward
-
 		std::vector<VulkanVertex> mesh_vertices1
 		{
-			{{-0.1f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
-			{{-0.1f,  0.4f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
-			{{-0.9f,  0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
-			{{-0.9f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
+			{{-0.4f,  0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
+			{{-0.4f, -0.4f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
+			{{ 0.4f, -0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
+			{{ 0.4f,  0.4f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
 		};
 		std::vector<VulkanVertex> mesh_vertices2
 		{
-			{{ 0.9f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
-			{{ 0.9f,  0.4f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
-			{{ 0.1f,  0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
-			{{ 0.1f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
+			{{-0.2f,  0.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},	// 0
+			{{-0.2f, -0.6f, 0.0f}, {0.0f, 1.0f, 0.0f}},	// 1
+			{{ 0.2f, -0.6f, 0.0f}, {0.0f, 0.0f, 1.0f}},	// 2
+			{{ 0.2f,  0.6f, 0.0f}, {1.0f, 1.0f, 0.0f}},	// 3
 		};
 		std::vector<uint32_t> mesh_indices
 		{
@@ -65,19 +65,14 @@ int VulkanRenderer::init()
 		VulkanMesh* mesh1 = create_mesh( &mesh_vertices1, &mesh_indices );
 		VulkanMesh* mesh2 = create_mesh( &mesh_vertices2, &mesh_indices );
 
-		glm::mat4 mesh_matrix = mesh1->get_mesh_data().Model;
-		//mesh_matrix = glm::rotate( mesh_matrix, glm::radians( 45.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-		mesh1->set_model_matrix( mesh_matrix );
-
 		//  data
-		allocate_dynamic_buffer_transfer_space();
+		//allocate_dynamic_buffer_transfer_space();
 		create_uniform_buffers();
 		create_descriptor_pool();
 		create_descriptor_sets();
 
 		//  commands
 		create_graphics_command_buffers();
-		record_commands();
 		create_synchronisation();
 	}
 	catch ( const std::runtime_error& err )
@@ -128,8 +123,8 @@ void VulkanRenderer::release()
 	{
 		MainDevices.Logical.destroyBuffer( ViewProjUniformBuffers[i] );
 		MainDevices.Logical.freeMemory( ViewProjUniformBuffersMemory[i] );
-		MainDevices.Logical.destroyBuffer( ModelUniformDynBuffers[i] );
-		MainDevices.Logical.freeMemory( ModelUniformDynBuffersMemory[i] );
+		/*MainDevices.Logical.destroyBuffer( ModelUniformDynBuffers[i] );
+		MainDevices.Logical.freeMemory( ModelUniformDynBuffersMemory[i] );*/
 	}
 
 	//  release logical device
@@ -162,6 +157,7 @@ void VulkanRenderer::draw()
 		VK_NULL_HANDLE
 	).value;
 
+	record_commands( image_idx );
 	update_uniform_buffers( image_idx );
 
 	// 2. Submit command buffer to queue for execution, make sure it waits
@@ -213,6 +209,13 @@ VulkanMesh* VulkanRenderer::create_mesh( std::vector<VulkanVertex>* vertices, st
 
 	Meshes.push_back( mesh );
 	return &Meshes.back();
+}
+
+void VulkanRenderer::update_model( int id, glm::mat4 matrix )
+{
+	if ( id >= Meshes.size() ) return;
+
+	Meshes[id].set_model_matrix( matrix );
 }
 
 void VulkanRenderer::create_instance()
@@ -591,8 +594,8 @@ void VulkanRenderer::create_graphics_pipeline()
 	vk::PipelineLayoutCreateInfo pipeline_layout_create_info {};
 	pipeline_layout_create_info.setLayoutCount = 1;
 	pipeline_layout_create_info.pSetLayouts = &DescriptorSetLayout;
-	pipeline_layout_create_info.pushConstantRangeCount = 0;
-	pipeline_layout_create_info.pPushConstantRanges = nullptr;
+	pipeline_layout_create_info.pushConstantRangeCount = 1;
+	pipeline_layout_create_info.pPushConstantRanges = &PushConstantRange;
 
 	// Create pipeline layout
 	PipelineLayout = MainDevices.Logical.createPipelineLayout( pipeline_layout_create_info );
@@ -750,8 +753,9 @@ void VulkanRenderer::create_graphics_command_pool()
 	VulkanQueueFamilyIndices indices = get_queue_families( MainDevices.Physical );
 
 	vk::CommandPoolCreateInfo create_info {};
-	create_info.sType = vk::StructureType::eCommandPoolCreateInfo;
 	create_info.queueFamilyIndex = indices.GraphicsFamily;
+	create_info.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+	create_info.sType = vk::StructureType::eCommandPoolCreateInfo;
 
 	GraphicsCommandPool = MainDevices.Logical.createCommandPool( create_info );
 }
@@ -795,13 +799,13 @@ void VulkanRenderer::create_descriptor_pool()
 	vk::DescriptorPoolSize vp_pool_size {};
 	vp_pool_size.descriptorCount = (uint32_t)ViewProjUniformBuffers.size();
 
-	vk::DescriptorPoolSize model_pool_size {};
-	model_pool_size.descriptorCount = (uint32_t)ModelUniformDynBuffers.size();
+	/*vk::DescriptorPoolSize model_pool_size {};
+	model_pool_size.descriptorCount = (uint32_t)ModelUniformDynBuffers.size();*/
 
 	std::vector<vk::DescriptorPoolSize> pool_sizes
 	{
 		vp_pool_size,
-		model_pool_size
+		//model_pool_size
 	};
 
 	vk::DescriptorPoolCreateInfo pool_create_info {};
@@ -828,17 +832,17 @@ void VulkanRenderer::create_descriptor_set_layout()
 	vp_layout_binding.pImmutableSamplers = nullptr;
 
 	//  model
-	vk::DescriptorSetLayoutBinding model_layout_binding;
+	/*vk::DescriptorSetLayoutBinding model_layout_binding;
 	model_layout_binding.binding = 1;
 	model_layout_binding.descriptorType = vk::DescriptorType::eUniformBufferDynamic;
 	model_layout_binding.descriptorCount = 1;
 	model_layout_binding.stageFlags = vk::ShaderStageFlagBits::eVertex;
-	model_layout_binding.pImmutableSamplers = nullptr;
+	model_layout_binding.pImmutableSamplers = nullptr;*/
 
 	std::vector<vk::DescriptorSetLayoutBinding> layout_bindings
 	{
 		vp_layout_binding,
-		model_layout_binding
+		//model_layout_binding
 	};
 
 	// Descriptor set layout with given binding
@@ -891,7 +895,7 @@ void VulkanRenderer::create_descriptor_sets()
 		vp_set_write.pBufferInfo = &vp_buffer_info;
 
 		//  model descriptor
-		vk::DescriptorBufferInfo model_buffer_info {};
+		/*vk::DescriptorBufferInfo model_buffer_info {};
 		model_buffer_info.buffer = ModelUniformDynBuffers[i];
 		model_buffer_info.offset = 0;
 		model_buffer_info.range = ModelUniformAlignement;
@@ -902,12 +906,12 @@ void VulkanRenderer::create_descriptor_sets()
 		model_set_write.dstArrayElement = 0;
 		model_set_write.descriptorType = vk::DescriptorType::eUniformBufferDynamic;
 		model_set_write.descriptorCount = 1;
-		model_set_write.pBufferInfo = &model_buffer_info;
+		model_set_write.pBufferInfo = &model_buffer_info;*/
 
 		std::vector<vk::WriteDescriptorSet> set_writes
 		{
 			vp_set_write,
-			model_set_write
+			//model_set_write
 		};
 
 		// Update descriptor set with new buffer/binding info
@@ -923,13 +927,13 @@ void VulkanRenderer::create_descriptor_sets()
 void VulkanRenderer::create_uniform_buffers()
 {
 	vk::DeviceSize vp_buffer_size = sizeof( ViewProjection );
-	vk::DeviceSize model_buffer_size = ModelUniformAlignement * MAX_OBJECTS;
+	//vk::DeviceSize model_buffer_size = ModelUniformAlignement * MAX_OBJECTS;
 
 	size_t size = SwapchainImages.size();
 	ViewProjUniformBuffers.resize( size );
 	ViewProjUniformBuffersMemory.resize( size );
-	ModelUniformDynBuffers.resize( size );
-	ModelUniformDynBuffersMemory.resize( size );
+	/*ModelUniformDynBuffers.resize( size );
+	ModelUniformDynBuffersMemory.resize( size );*/
 
 	for ( int i = 0; i < size; i++ )
 	{
@@ -945,7 +949,7 @@ void VulkanRenderer::create_uniform_buffers()
 		);
 
 		//  model buffers
-		create_buffer(
+		/*create_buffer(
 			MainDevices.Physical,
 			MainDevices.Logical,
 			model_buffer_size,
@@ -953,8 +957,15 @@ void VulkanRenderer::create_uniform_buffers()
 			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 			&ModelUniformDynBuffers[i],
 			&ModelUniformDynBuffersMemory[i]
-		);
+		);*/
 	}
+}
+
+void VulkanRenderer::create_push_constant_range()
+{
+	PushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
+	PushConstantRange.offset = 0;
+	PushConstantRange.size = sizeof( MeshData );
 }
 
 vk::ShaderModule VulkanRenderer::create_shader_module( const std::vector<char>& code )
@@ -966,7 +977,7 @@ vk::ShaderModule VulkanRenderer::create_shader_module( const std::vector<char>& 
 	return MainDevices.Logical.createShaderModule( create_info );
 }
 
-void VulkanRenderer::record_commands()
+void VulkanRenderer::record_commands( uint32_t image_idx )
 {
 	// How to begin each command buffer
 	vk::CommandBufferBeginInfo buffer_begin_info {};
@@ -988,61 +999,81 @@ void VulkanRenderer::record_commands()
 	render_pass_begin_info.clearValueCount = 1;
 	render_pass_begin_info.pClearValues = &clear_values;
 
-	for ( size_t i = 0; i < CommandBuffers.size(); i++ )
+	// Because 1-to-1 relationship
+	render_pass_begin_info.framebuffer = SwapchainFrameBuffers[image_idx];
+
+	auto& buffer = CommandBuffers[image_idx];
+	// Start recording commands to command buffer
+	buffer.begin( buffer_begin_info );
+	// Begin render pass
+	// All draw commands inline (no secondary command buffers)
+	buffer.beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
+	// Bind pipeline to be used in render pass,
+	// you could switch pipelines for different subpasses
+	buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, GraphicsPipeline );
+	
+	//  draw meshes
+	for ( size_t mesh_id = 0; mesh_id < Meshes.size(); mesh_id++ )
 	{
-		// Because 1-to-1 relationship
-		render_pass_begin_info.framebuffer = SwapchainFrameBuffers[i];
+		const auto& mesh = Meshes[mesh_id];
 
-		auto& buffer = CommandBuffers[i];
-		// Start recording commands to command buffer
-		buffer.begin( buffer_begin_info );
-		// Begin render pass
-		// All draw commands inline (no secondary command buffers)
-		buffer.beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
-		// Bind pipeline to be used in render pass,
-		// you could switch pipelines for different subpasses
-		buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, GraphicsPipeline );
+		//  bind vertex buffer
+		vk::Buffer vertex_buffers[] = { mesh.get_vertex_buffer() };
+		vk::DeviceSize offsets[] = { 0 };
+		buffer.bindVertexBuffers( 0, vertex_buffers, offsets );
 
-		//  draw meshes
-		for ( size_t mesh_id = 0; mesh_id < Meshes.size(); mesh_id++ )
-		{
-			const auto& mesh = Meshes[mesh_id];
-
-			//  bind vertex buffer
-			vk::Buffer vertex_buffers[] = { mesh.get_vertex_buffer() };
-			vk::DeviceSize offsets[] = { 0 };
-			buffer.bindVertexBuffers( 0, vertex_buffers, offsets );
-
-			//  bind index buffer
-			buffer.bindIndexBuffer( mesh.get_index_buffer(), 0, vk::IndexType::eUint32 );
+		//  bind index buffer
+		buffer.bindIndexBuffer( mesh.get_index_buffer(), 0, vk::IndexType::eUint32 );
 			
-			//  dynamic offset amount
-			uint32_t dynamic_offset = (uint32_t)ModelUniformAlignement * mesh_id;
+		//  dynamic offset amount
+		//uint32_t dynamic_offset = (uint32_t)ModelUniformAlignement * mesh_id;
 
-			//  bind descriptor sets
-			buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eGraphics,
-				PipelineLayout,
-				0,
-				1,
-				&DescriptorSets[i],
-				1,
-				&dynamic_offset
-			);
+		////  bind descriptor sets
+		//buffer.bindDescriptorSets(
+		//	vk::PipelineBindPoint::eGraphics,
+		//	PipelineLayout,
+		//	0,
+		//	1,
+		//	&DescriptorSets[image_idx],
+		//	1,
+		//	&dynamic_offset
+		//);
 
-			// Execute pipeline
-			buffer.drawIndexed( (uint32_t)mesh.get_index_count(), 1, 0, 0, 0 );
-		}
+		//  push constants
+		MeshData model = mesh.get_mesh_data();
+		buffer.pushConstants( 
+			PipelineLayout, 
+			vk::ShaderStageFlagBits::eVertex, 
+			0, 
+			sizeof( MeshData ), 
+			&model 
+		);
 
-		// Draw 3 vertices, 1 instance, with no offset. Instance allow you
-		// to draw several instances with one draw call.
-		//buffer.draw( 3, 1, 0, 0 );
+		//  bind descriptor sets
+		buffer.bindDescriptorSets(
+			vk::PipelineBindPoint::eGraphics,
+			PipelineLayout,
+			0,
+			1,
+			&DescriptorSets[image_idx],
+			0,
+			nullptr
+		);
 
-		// End render pass
-		buffer.endRenderPass();
-		// Stop recordind to command buffer
-		buffer.end();
+		// Execute pipeline
+		buffer.drawIndexed( (uint32_t)mesh.get_index_count(), 1, 0, 0, 0 );
+
+		printf( "mesh_id: %d\n", mesh_id );
 	}
+
+	// Draw 3 vertices, 1 instance, with no offset. Instance allow you
+	// to draw several instances with one draw call.
+	//buffer.draw( 3, 1, 0, 0 );
+
+	// End render pass
+	buffer.endRenderPass();
+	// Stop recordind to command buffer
+	buffer.end();
 }
 
 bool VulkanRenderer::check_instance_extensions_support( const std::vector<const char*>& extensions )
@@ -1161,7 +1192,7 @@ void VulkanRenderer::update_uniform_buffers( uint32_t image_idx )
 	MainDevices.Logical.unmapMemory( ViewProjUniformBuffersMemory[image_idx] );
 
 	//  copy model data
-	for ( size_t i = 0; i < Meshes.size(); i++ )
+	/*for ( size_t i = 0; i < Meshes.size(); i++ )
 	{
 		MeshData* model = (MeshData*)( (uint64_t)ModelTransferSpace + i * ModelUniformAlignement );
 		*model = Meshes[i].get_mesh_data();
@@ -1174,7 +1205,7 @@ void VulkanRenderer::update_uniform_buffers( uint32_t image_idx )
 		&data
 	);
 	memcpy( data, &ModelTransferSpace, ModelUniformAlignement * Meshes.size() );
-	MainDevices.Logical.unmapMemory( ModelUniformDynBuffersMemory[image_idx] );
+	MainDevices.Logical.unmapMemory( ModelUniformDynBuffersMemory[image_idx] );*/
 }
 
 void VulkanRenderer::allocate_dynamic_buffer_transfer_space()

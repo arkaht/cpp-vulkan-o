@@ -49,6 +49,15 @@ int main()
 		if ( angle > 360.0f ) angle -= 360.0f;
 
 		//  update model
+		glm::mat4 matrix1( 1.0f ), matrix2( 1.0f );
+
+		matrix1 = glm::translate( matrix1, glm::vec3( 0.0f, 0.0, -5.0f ) );
+		matrix1 = glm::rotate( matrix1, glm::radians( angle ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+		renderer.update_model( 0, matrix1 );
+
+		matrix2 = glm::translate( matrix2, glm::vec3( 0.0f, 0.0f, cosf( glm::radians( angle * 2.0f ) ) * 10.0f ) );
+		matrix2 = glm::rotate( matrix2, glm::radians( -angle * 20.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+		renderer.update_model( 1, matrix2 );
 
 		//  draw
 		renderer.draw();

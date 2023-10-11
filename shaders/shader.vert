@@ -11,8 +11,8 @@ layout(binding = 0) uniform ViewProjection
     mat4 Projection;
 } view_proj;
 
-//  DUB
-layout(binding = 1) uniform Model
+//  push constant
+layout(push_constant) uniform Model
 {
     mat4 Model;
 } model;

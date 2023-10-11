@@ -27,6 +27,7 @@ public:
 	void draw();
 
 	VulkanMesh* create_mesh( std::vector<VulkanVertex>* vertices, std::vector<uint32_t>* indices );
+	void update_model( int id, glm::mat4 matrix );
 
 private:
 	GLFWwindow* Window;
@@ -60,8 +61,10 @@ private:
 	std::vector<vk::Buffer> ViewProjUniformBuffers;
 	std::vector<vk::DeviceMemory> ViewProjUniformBuffersMemory;
 
-	std::vector<vk::Buffer> ModelUniformDynBuffers;
-	std::vector<vk::DeviceMemory> ModelUniformDynBuffersMemory;
+	/*std::vector<vk::Buffer> ModelUniformDynBuffers;
+	std::vector<vk::DeviceMemory> ModelUniformDynBuffersMemory;*/
+
+	vk::PushConstantRange PushConstantRange;
 
 	const int MAX_OBJECTS = 2;
 	vk::DeviceSize MinUniformBufferOffset;
@@ -92,9 +95,10 @@ private:
 	void create_descriptor_set_layout();
 	void create_descriptor_sets();
 	void create_uniform_buffers();
+	void create_push_constant_range();
 	vk::ShaderModule create_shader_module( const std::vector<char>& code );
 	
-	void record_commands();
+	void record_commands( uint32_t image_idx );
 
 	bool check_instance_extensions_support( const std::vector<const char*>& extensions );
 	bool check_validation_layer_support();
