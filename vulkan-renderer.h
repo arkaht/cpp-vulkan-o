@@ -66,6 +66,12 @@ private:
 
 	vk::PushConstantRange PushConstantRange;
 
+	//  depth
+	vk::Image DepthBufferImage;
+	vk::ImageView DepthBufferImageView;
+	vk::DeviceMemory DepthBufferImageMemory;
+	vk::Format DepthBufferFormat;
+
 	const int MAX_OBJECTS = 2;
 	vk::DeviceSize MinUniformBufferOffset;
 	size_t ModelUniformAlignement;
@@ -96,7 +102,17 @@ private:
 	void create_descriptor_sets();
 	void create_uniform_buffers();
 	void create_push_constant_range();
+	void create_depth_buffer_image();
 	vk::ShaderModule create_shader_module( const std::vector<char>& code );
+	vk::Image create_image( 
+		uint32_t width,
+		uint32_t height,
+		vk::Format format,
+		vk::ImageTiling tiling,
+		vk::ImageUsageFlags use_flags,
+		vk::MemoryPropertyFlags prop_flags,
+		vk::DeviceMemory* image_memory
+	);
 	
 	void record_commands( uint32_t image_idx );
 
@@ -115,7 +131,8 @@ private:
 	vk::SurfaceFormatKHR get_best_surface_format( const std::vector<vk::SurfaceFormatKHR>& formats );
 	vk::PresentModeKHR get_best_presentation_mode( const std::vector<vk::PresentModeKHR>& modes );
 	vk::Extent2D get_swap_extent( const vk::SurfaceCapabilitiesKHR& capabilities );
-	
+	vk::Format select_supported_format( const std::vector<vk::Format>& formats, vk::ImageTiling tiling, vk::FormatFeatureFlags feature_flags );
+
 	VulkanQueueFamilyIndices get_queue_families( const vk::PhysicalDevice& device );
 };
 

@@ -7,6 +7,8 @@
 
 #include "vulkan-renderer.h"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 GLFWwindow* init_window( std::string title, int width, int height )
 {
 	glfwInit();
@@ -55,7 +57,7 @@ int main()
 		matrix1 = glm::rotate( matrix1, glm::radians( angle ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
 		renderer.update_model( 0, matrix1 );
 
-		matrix2 = glm::translate( matrix2, glm::vec3( 0.0f, 0.0f, cosf( glm::radians( angle * 2.0f ) ) * 10.0f ) );
+		matrix2 = glm::translate( matrix2, glm::vec3( 0.0f, 0.0f, -5.0f + cosf( glm::radians( angle * 2.0f ) ) * 2.0f ) );
 		matrix2 = glm::rotate( matrix2, glm::radians( -angle * 20.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
 		renderer.update_model( 1, matrix2 );
 
