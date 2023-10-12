@@ -77,6 +77,11 @@ private:
 
 	vk::PushConstantRange PushConstantRange;
 
+	//  color
+	vk::Image ColorImage;
+	vk::DeviceMemory ColorImageMemory;
+	vk::ImageView ColorImageView;
+
 	//  depth
 	vk::Image DepthBufferImage;
 	vk::ImageView DepthBufferImageView;
@@ -89,6 +94,7 @@ private:
 	std::vector<vk::DeviceMemory> TextureImageMemories;
 
 	//  sampler
+	vk::SampleCountFlagBits MSAASamples { vk::SampleCountFlagBits::e1 };
 	vk::Sampler TextureSampler;
 	vk::DescriptorPool SamplerDescriptorPool;
 	vk::DescriptorSetLayout SamplerDescriptorSetLayout;
@@ -111,7 +117,12 @@ private:
 	void create_instance();
 	void create_logical_device();
 	vk::SurfaceKHR create_surface();
-	vk::ImageView create_image_view( vk::Image image, vk::Format format, vk::ImageAspectFlagBits aspect_flags );
+	vk::ImageView create_image_view( 
+		vk::Image image, 
+		vk::Format format, 
+		vk::ImageAspectFlagBits aspect_flags,
+		uint32_t mip_levels
+	);
 	void create_swapchain();
 	void create_graphics_pipeline();
 	void create_render_pass();
@@ -124,19 +135,22 @@ private:
 	void create_descriptor_sets();
 	void create_uniform_buffers();
 	void create_push_constant_range();
+	void create_color_buffer_image();
 	void create_depth_buffer_image();
 	vk::ShaderModule create_shader_module( const std::vector<char>& code );
 
 	vk::Image create_image( 
 		uint32_t width,
 		uint32_t height,
+		uint32_t mip_levels,
+		vk::SampleCountFlagBits samples,
 		vk::Format format,
 		vk::ImageTiling tiling,
 		vk::ImageUsageFlags use_flags,
 		vk::MemoryPropertyFlags prop_flags,
 		vk::DeviceMemory* image_memory
 	);
-	int create_texture_image( const std::string& file );
+	int create_texture_image( const std::string& file, uint32_t* mip_levels );
 	int create_texture( const std::string& file );
 	void create_texture_sampler();
 	int create_texture_descriptor( vk::ImageView image_view );
